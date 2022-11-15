@@ -2,14 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
+using System.Xml;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.UI;
 using Debug = UnityEngine.Debug;
 
 public class PlayerMovement : MonoBehaviour
 {
+
     [SerializeField] GameObject slot;
     [SerializeField] private FixedJoystick _joystick;
     [SerializeField] private float _moveSpeed = 1.0f;
@@ -17,11 +21,13 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] Button btnSit;
     Animator aniCharacter;
     Rigidbody objRigitBody;
+    Vector3 offset;
     bool sitting = false;
-    Transform child;
+    Transform target;
+    bool sitdown = false;
     void Start()
     {
-        child = slot.transform.GetChild(1);
+        
         aniCharacter = GetComponent<Animator>();
         objRigitBody = transform.GetComponent<Rigidbody>();
         btnJump.onClick.AddListener(PlayerJump);
@@ -31,7 +37,25 @@ public class PlayerMovement : MonoBehaviour
     {
         MoveWeb();
         Sitting();
-        //MoveMobile();
+
+        if (sitdown == true)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, 1.0f * Time.deltaTime);
+            transform.rotation = Quaternion.LookRotation(objRigitBody.velocity);
+            aniCharacter.SetBool("Run", true);
+            aniCharacter.SetBool("Stop", false);
+            float distance = Vector3.Distance(transform.position, target.transform.position);
+            if (distance < 0.1)
+            {
+                transform.position = target.position;
+                aniCharacter.SetTrigger("StandToSit");
+                aniCharacter.SetBool("Sit", true);
+                aniCharacter.SetBool("Run", false);
+                aniCharacter.SetBool("Stop", false);
+                sitdown = false;
+
+            }
+        }
     }
     void MoveWeb()
     {
@@ -50,21 +74,21 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(KeyCode.W))
         {
             Vector3 playerPositionUp = transform.position;
-            playerPositionUp.z += Vector3.forward.z * Time.deltaTime * 2.0f;
+            playerPositionUp.z += Vector3.forward.z * Time.deltaTime * 1.0f;
             transform.position = playerPositionUp;
             transform.GetComponent<Rigidbody>().rotation = Quaternion.LookRotation(Vector3.forward);
         }
         if (Input.GetKey(KeyCode.S))
         {
             Vector3 playerPositionDown = transform.position;
-            playerPositionDown.z += Vector3.back.z * Time.deltaTime * 2.0f;
+            playerPositionDown.z += Vector3.back.z * Time.deltaTime * 1.0f;
             transform.position = playerPositionDown;
             transform.GetComponent<Rigidbody>().rotation = Quaternion.LookRotation(Vector3.back);
         }
         if (Input.GetKey(KeyCode.D))
         {
             Vector3 playerPositionRight = transform.position;
-            playerPositionRight.x += Vector3.right.x * Time.deltaTime * 2.0f;
+            playerPositionRight.x += Vector3.right.x * Time.deltaTime * 1.0f;
             transform.position = playerPositionRight;
             transform.GetComponent<Rigidbody>().rotation = Quaternion.LookRotation(Vector3.right);
         }
@@ -86,6 +110,7 @@ public class PlayerMovement : MonoBehaviour
         {
             aniCharacter.SetBool("Run", false);
             aniCharacter.SetBool("Stop", false);
+            aniCharacter.SetTrigger("StandToSit");
             aniCharacter.SetBool("Sit", true);
         }
     }
@@ -106,6 +131,7 @@ public class PlayerMovement : MonoBehaviour
             {
                 aniCharacter.SetBool("Stop", false);
                 aniCharacter.SetBool("Run", false);
+                aniCharacter.SetTrigger("StandToSit");
                 aniCharacter.SetBool("Sit", true);
             }
             else
@@ -129,28 +155,19 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Sitting()
     {
-        
-        Vector3 offset = new Vector3(0, 0.5f, 0);
+        //target = slot.transform.GetChild(0);
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-            float distance = Vector3.Distance(transform.position, child.transform.position);
             if (Physics.Raycast(ray, out hit))
             {
-                if (hit.transform.name == "chair")
+                if (hit.transform.tag == "chair")
                 {
-                    if (distance <= 1)
-                    {
-                        transform.position = hit.transform.position + offset;
-                        aniCharacter.SetBool("Sit", true);
-                        aniCharacter.SetBool("Run", false);
-                        aniCharacter.SetBool("Stop", false);
-                    }
+                    target = hit.transform;
+                    sitdown = true;
                 }
-
             }
         }
-
     }
 }
