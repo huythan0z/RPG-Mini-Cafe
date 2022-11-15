@@ -13,7 +13,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float _moveSpeed = 1.0f;
     [SerializeField] Button btnJump;
     [SerializeField] Button btnSit;
-
     Animator aniCharacter;
     Rigidbody objRigitBody;
     bool sitting = false;
@@ -29,7 +28,6 @@ public class PlayerMovement : MonoBehaviour
         //MoveWeb();
         MoveMobile();
     }
-
     void MoveWeb()
     {
         if (Input.GetKeyUp(KeyCode.W) || Input.GetKeyUp(KeyCode.S) || Input.GetKeyUp(KeyCode.A) || Input.GetKeyUp(KeyCode.D))
@@ -49,8 +47,6 @@ public class PlayerMovement : MonoBehaviour
             Vector3 playerPositionUp = transform.position;
             playerPositionUp.z += Vector3.forward.z * Time.deltaTime * 2.0f;
             transform.position = playerPositionUp;
-
-
             transform.GetComponent<Rigidbody>().rotation = Quaternion.LookRotation(Vector3.forward);
         }
         if (Input.GetKey(KeyCode.S))
