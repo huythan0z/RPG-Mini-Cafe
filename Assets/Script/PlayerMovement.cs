@@ -6,9 +6,11 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using Debug = UnityEngine.Debug;
 
 public class PlayerMovement : MonoBehaviour
 {
+    [SerializeField] GameObject slot;
     [SerializeField] private FixedJoystick _joystick;
     [SerializeField] private float _moveSpeed = 1.0f;
     [SerializeField] Button btnJump;
@@ -16,8 +18,10 @@ public class PlayerMovement : MonoBehaviour
     Animator aniCharacter;
     Rigidbody objRigitBody;
     bool sitting = false;
+    Transform child;
     void Start()
     {
+        child = slot.transform.GetChild(1);
         aniCharacter = GetComponent<Animator>();
         objRigitBody = transform.GetComponent<Rigidbody>();
         btnJump.onClick.AddListener(PlayerJump);
@@ -25,8 +29,9 @@ public class PlayerMovement : MonoBehaviour
     }
     void Update()
     {
-        //MoveWeb();
-        MoveMobile();
+        MoveWeb();
+        Sitting();
+        //MoveMobile();
     }
     void MoveWeb()
     {
@@ -121,5 +126,31 @@ public class PlayerMovement : MonoBehaviour
     void PlayerSit()
     {
         sitting = true;
+    }
+    public void Sitting()
+    {
+        
+        Vector3 offset = new Vector3(0, 0.5f, 0);
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            float distance = Vector3.Distance(transform.position, child.transform.position);
+            if (Physics.Raycast(ray, out hit))
+            {
+                if (hit.transform.name == "chair")
+                {
+                    if (distance <= 1)
+                    {
+                        transform.position = hit.transform.position + offset;
+                        aniCharacter.SetBool("Sit", true);
+                        aniCharacter.SetBool("Run", false);
+                        aniCharacter.SetBool("Stop", false);
+                    }
+                }
+
+            }
+        }
+
     }
 }
