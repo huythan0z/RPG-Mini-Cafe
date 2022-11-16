@@ -4,58 +4,37 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.Xml;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.UI;
-using Debug = UnityEngine.Debug;
-
 public class PlayerMovement : MonoBehaviour
 {
-
-    [SerializeField] GameObject slot;
+    NavMeshAgent nav;
     [SerializeField] private FixedJoystick _joystick;
     [SerializeField] private float _moveSpeed = 1.0f;
     [SerializeField] Button btnJump;
-    [SerializeField] Button btnSit;
     Animator aniCharacter;
     Rigidbody objRigitBody;
-    Vector3 offset;
-    bool sitting = false;
+    bool sitting;
     Transform target;
-    bool sitdown = false;
+    bool check = false;
     void Start()
     {
-        
+        sitting = false;
+        nav = GetComponent<NavMeshAgent>();
         aniCharacter = GetComponent<Animator>();
         objRigitBody = transform.GetComponent<Rigidbody>();
         btnJump.onClick.AddListener(PlayerJump);
-        btnSit.onClick.AddListener(PlayerSit);
     }
     void Update()
     {
         MoveWeb();
-        Sitting();
-
-        if (sitdown == true)
-        {
-            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, 1.0f * Time.deltaTime);
-            transform.rotation = Quaternion.LookRotation(objRigitBody.velocity);
-            aniCharacter.SetBool("Run", true);
-            aniCharacter.SetBool("Stop", false);
-            float distance = Vector3.Distance(transform.position, target.transform.position);
-            if (distance < 0.1)
-            {
-                transform.position = target.position;
-                aniCharacter.SetTrigger("StandToSit");
-                aniCharacter.SetBool("Sit", true);
-                aniCharacter.SetBool("Run", false);
-                aniCharacter.SetBool("Stop", false);
-                sitdown = false;
-
-            }
-        }
+        MoveToChair();
+        //MoveToChairMobile();
+        //MoveMobile();
     }
     void MoveWeb()
     {
@@ -102,7 +81,6 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Space))
         {
             objRigitBody.AddForce(new Vector3(0, 3.5f, 0), ForceMode.VelocityChange);
-
             aniCharacter.SetBool("Sit", false);
             aniCharacter.SetBool("Stop", true);
         }
@@ -119,25 +97,20 @@ public class PlayerMovement : MonoBehaviour
         objRigitBody.velocity = new Vector3(_joystick.Horizontal * _moveSpeed, objRigitBody.velocity.y, _joystick.Vertical * _moveSpeed);
         if (_joystick.Horizontal != 0 || _joystick.Vertical != 0)
         {
-            transform.rotation = Quaternion.LookRotation(objRigitBody.velocity);
-            aniCharacter.SetBool("Run", true);
-            aniCharacter.SetBool("Stop", false);
-            aniCharacter.SetBool("Sit", false);
-            sitting = false;
-        }
-        else
-        {
-            if (sitting == true)
             {
+                transform.rotation = Quaternion.LookRotation(objRigitBody.velocity);
+                aniCharacter.SetBool("Run", true);
                 aniCharacter.SetBool("Stop", false);
-                aniCharacter.SetBool("Run", false);
-                aniCharacter.SetTrigger("StandToSit");
-                aniCharacter.SetBool("Sit", true);
+                aniCharacter.SetBool("Sit", false);
+                check = true;
             }
-            else
+        }
+        if (_joystick.Horizontal == 0 && check == true || _joystick.Vertical == 0 && check == true)
+        {
             {
                 aniCharacter.SetBool("Stop", true);
                 aniCharacter.SetBool("Run", false);
+                check = false;
             }
         }
     }
@@ -149,13 +122,8 @@ public class PlayerMovement : MonoBehaviour
         aniCharacter.SetBool("Stop", true);
         sitting = false;
     }
-    void PlayerSit()
-    {
-        sitting = true;
-    }
     public void Sitting()
     {
-        //target = slot.transform.GetChild(0);
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -165,9 +133,57 @@ public class PlayerMovement : MonoBehaviour
                 if (hit.transform.tag == "chair")
                 {
                     target = hit.transform;
-                    sitdown = true;
+                    sitting = true;
+                    nav.enabled = true;
                 }
             }
+        }
+    }
+    void MoveToChair()
+    {
+        Sitting();
+        if (sitting == true)
+        {
+            // transform.position = Vector3.MoveTowards(transform.position, target.transform.position, 1.0f * Time.deltaTime);
+            nav.SetDestination(target.position);
+            transform.rotation = Quaternion.LookRotation(nav.velocity);
+            //transform.rotation = Quaternion.LookRotation(target.position - transform.position);
+            aniCharacter.SetBool("Run", true);
+            aniCharacter.SetBool("Stop", false);
+            float distance = Vector3.Distance(transform.position, target.transform.position);
+            if (distance < 0.1)
+            {
+                transform.position = target.position;
+                transform.rotation = target.localRotation;
+                aniCharacter.SetTrigger("StandToSit");
+                aniCharacter.SetBool("Sit", true);
+                aniCharacter.SetBool("Run", false);
+                aniCharacter.SetBool("Stop", false);
+                sitting = false;
+                nav.enabled = false;
+            }
+        }
+    }
+    void MoveToChairMobile()
+    {
+        Sitting();
+        if (sitting == true)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, target.transform.position, 1.0f * Time.deltaTime);
+            transform.rotation = Quaternion.LookRotation(target.position - transform.position, Vector3.up);
+            float distance = Vector3.Distance(transform.position, target.transform.position);
+            aniCharacter.SetBool("Run", true);
+            aniCharacter.SetBool("Stop", false);
+            if (distance < 0.1)
+            {
+                transform.position = target.position;
+                transform.rotation = target.localRotation;
+                aniCharacter.SetTrigger("StandToSit");
+                aniCharacter.SetBool("Sit", true);
+                aniCharacter.SetBool("Run", false);
+                sitting = false;
+            }
+                
         }
     }
 }
